@@ -83,12 +83,16 @@ class ProfileTests(unittest.TestCase):
                 self.assertIn("configured root model and reasoning\neffort", visibility)
                 self.assertIn("active session configuration", visibility)
                 self.assertIn("Do not infer a\nroot override", visibility)
-                self.assertIn("does not prove which model the backend ultimately executed", visibility)
+                self.assertIn("label the line as a profile\ndefault", visibility)
+                self.assertIn("Orchestrator — profile default:", visibility)
+                self.assertIn("does not prove\nwhich model the backend ultimately executed", visibility)
                 self.assertIn("After every successful `spawn_agent` call", visibility)
                 self.assertIn("one separate assistant\ncommentary message on one short line", visibility)
                 self.assertIn("canonical task name returned by the successful call", visibility)
-                self.assertIn("explicitly selected or passed in that successful\ncall", visibility)
-                self.assertIn("If the call fails, do not\npublish a `Started` line", visibility)
+                self.assertIn("explicitly selected and passed in that successful\ncall", visibility)
+                self.assertIn("requested\nspawn was accepted, not which model the backend ultimately executed", visibility)
+                self.assertIn("role-file and permitted user overrides", visibility)
+                self.assertIn("If the call\nfails, do not publish a `Started` line", visibility)
                 self.assertIn("permitted user override", visibility)
                 self.assertIn("`gpt-5.6-luna` → `GPT-5.6 Luna`", visibility)
                 self.assertIn("`gpt-5.6-sol` → `GPT-5.6 Sol`", visibility)
@@ -106,9 +110,10 @@ Started `/root/check_api` — Researcher · GPT-5.6 Luna · max reasoning"""
             "Started `/root/review_change` — Reviewer · GPT-5.6 Sol · low reasoning",
             readme,
         )
-        self.assertIn("A failed spawn produces no\n`Started` detail", readme)
-        self.assertIn("cannot\nreplace or enrich the built-in `Started …` interface", readme)
-        self.assertIn("describes configuration rather than proving which model", readme)
+        self.assertIn("A failed spawn produces no `Started` detail", readme)
+        self.assertIn("cannot replace or enrich the built-in\n`Started …` interface", readme)
+        self.assertIn("labelled as a profile default", readme)
+        self.assertIn("requested spawn was accepted, not backend model\nexecution", readme)
         self.assertIn("does not alter\neither profile's agent selection or delegation behavior", readme)
 
 

@@ -245,13 +245,17 @@ Started `/root/review_change` — Reviewer · GPT-5.6 Sol · low reasoning
 ```
 
 The configured root model and effort appear once when orchestration starts.
-They come from active session configuration when available, otherwise from the
-installed profile; this describes configuration rather than proving which model
-the backend ultimately executed. Each `Started` line is added only after a
-successful `spawn_agent` call and reflects the role, model, and effort passed to
-that call, including permitted user overrides. A failed spawn produces no
-`Started` detail. The skill adds these commentary lines separately; it cannot
-replace or enrich the built-in `Started …` interface message.
+They come from active session configuration. If that configuration is
+unavailable because the selected profile was not installed, the line is clearly
+labelled as a profile default (for example, `Orchestrator — profile default:
+GPT-5.6 Sol · medium reasoning`); neither form proves which model the backend
+ultimately executed. Each `Started` line is added only after a successful
+`spawn_agent` call and reflects the role, model, and effort explicitly selected
+and passed to that call, including permitted user and role-file overrides. The
+successful result confirms the requested spawn was accepted, not backend model
+execution. A failed spawn produces no `Started` detail. The skill adds these
+commentary lines separately; it cannot replace or enrich the built-in
+`Started …` interface message.
 
 The examples and requested Sol/medium root plus Luna/max execution policy above
 use the Pro profile. The Plus profile reports its existing Luna `max` root and
@@ -328,7 +332,10 @@ model_reasoning_effort = "max"
 
 ## Important behavior
 
-Explicit model choices during a spawn override `[agents]` defaults. Custom agent files that specify `model` or `model_reasoning_effort` also take precedence over inherited defaults.
+Explicit model and reasoning choices during a spawn use the effective values
+resolved from permitted user overrides, custom role files, and profile defaults
+in that order. This preserves customized role effort while making the selected
+values visible.
 
 The execution role files are pinned to Luna intentionally, while the reviewer is pinned to Sol for independent final review. Sol remains the Pro orchestrator unless you deliberately change the role configuration.
 
