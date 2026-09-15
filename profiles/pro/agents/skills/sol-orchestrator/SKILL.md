@@ -109,10 +109,12 @@ For every delegated task:
 
 1. call `spawn_agent`
 2. give the agent a descriptive task name using underscores
-3. explicitly specify the intended model
+3. select the intended role, resolve its effective model and reasoning effort,
+   and explicitly pass those values
 4. give the subagent a bounded delegation contract
 5. retain the returned task name or identifier
-6. wait for required agents before final synthesis
+6. after a successful call, publish the required visibility update below
+7. wait for required agents before final synthesis
 
 Do not silently substitute the root agent for a required Luna worker.
 
@@ -123,6 +125,67 @@ Do not spawn Sol workers except for the `reviewer` role unless:
 - the root determines that a high-risk architectural or security review needs Sol
 
 Routine execution should remain on Luna.
+
+---
+
+## Orchestration visibility
+
+When orchestration starts, publish the configured root model and reasoning
+effort once in a short assistant commentary line. Read these values from the
+active session configuration when it is available. The Pro default is:
+
+`Orchestrator — GPT-5.6 Sol · medium reasoning`
+
+If the active session configuration confirms a permitted user override, show
+that configured model and effort instead of the profile default. Do not infer a
+root override from a prompt or role default. If session configuration is
+unavailable because the profile was not installed, label the line as a profile
+default rather than claiming it is active configuration; for example:
+`Orchestrator — profile default: GPT-5.6 Sol · medium reasoning`. Do not repeat
+this line for each subagent. This line reports configuration; it does not prove
+which model the backend ultimately executed.
+
+After every successful `spawn_agent` call, publish one separate assistant
+commentary message on one short line:
+
+`Started \`<canonical task name>\` — <Role> · <Model> · <effort> reasoning`
+
+Use the canonical task name returned by the successful call. Use only the role,
+model, and reasoning effort explicitly selected and passed in that successful
+call; resolve role-file and permitted user overrides before the call so
+customized effort is preserved. The successful result confirms the requested
+spawn was accepted, not which model the backend ultimately executed. Never
+infer or claim a model or effort from an unrelated profile default. If the call
+fails, do not publish a `Started` line. Report the failure through the normal
+failure path.
+
+Display the standard models as:
+
+- `gpt-5.6-luna` → `GPT-5.6 Luna`
+- `gpt-5.6-sol` → `GPT-5.6 Sol`
+
+Display the named roles as `Explorer`, `Worker`, `Tester`, `Researcher`, and
+`Reviewer`. For another permitted user override, display the actual confirmed
+model and effort; use its confirmed product display name when available,
+otherwise use the exact model identifier rather than inventing a name.
+
+For parallel Pro-profile spawns, the commentary should look like:
+
+```text
+Orchestrator — GPT-5.6 Sol · medium reasoning
+Started `/root/map_backend` — Explorer · GPT-5.6 Luna · max reasoning
+Started `/root/check_api` — Researcher · GPT-5.6 Luna · max reasoning
+```
+
+For review:
+
+```text
+Started `/root/review_change` — Reviewer · GPT-5.6 Sol · low reasoning
+```
+
+These are additional assistant commentary messages. Do not replace, suppress,
+or depend on the built-in `Started …` interface message; it is outside the
+skill's control.
 
 ---
 
@@ -405,7 +468,8 @@ For implementation tasks, prefer checking:
 
 ## User-facing behavior
 
-Do not narrate every subagent action unless the user asks for detailed orchestration visibility.
+Apart from the required orchestration visibility lines, do not narrate every
+subagent action unless the user asks for more detail.
 
 The final answer should focus on:
 

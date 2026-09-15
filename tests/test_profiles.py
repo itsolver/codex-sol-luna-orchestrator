@@ -68,6 +68,54 @@ class ProfileTests(unittest.TestCase):
                 with self.subTest(path=path.relative_to(ROOT)):
                     self.assertNotIn("gpt-6-astra", path.read_text(encoding="utf-8"))
 
+    def test_skills_define_evidence_based_orchestration_visibility(self):
+        expected_roots = {
+            "pro": "Orchestrator — GPT-5.6 Sol · medium reasoning",
+            "plus": "Orchestrator — GPT-5.6 Luna · max reasoning",
+        }
+        for plan, root_line in expected_roots.items():
+            with self.subTest(plan=plan):
+                skill = (
+                    ROOT / "profiles" / plan / "agents" / "skills" / "sol-orchestrator" / "SKILL.md"
+                ).read_text(encoding="utf-8")
+                visibility = skill.split("## Orchestration visibility", 1)[1].split("\n---\n", 1)[0]
+                self.assertIn(root_line, visibility)
+                self.assertIn("configured root model and reasoning\neffort", visibility)
+                self.assertIn("active session configuration", visibility)
+                self.assertIn("Do not infer a\nroot override", visibility)
+                self.assertIn("label the line as a profile\ndefault", visibility)
+                self.assertIn("Orchestrator — profile default:", visibility)
+                self.assertIn("does not prove\nwhich model the backend ultimately executed", visibility)
+                self.assertIn("After every successful `spawn_agent` call", visibility)
+                self.assertIn("one separate assistant\ncommentary message on one short line", visibility)
+                self.assertIn("canonical task name returned by the successful call", visibility)
+                self.assertIn("explicitly selected and passed in that successful\ncall", visibility)
+                self.assertIn("requested\nspawn was accepted, not which model the backend ultimately executed", visibility)
+                self.assertIn("role-file and permitted user overrides", visibility)
+                self.assertIn("If the call\nfails, do not publish a `Started` line", visibility)
+                self.assertIn("permitted user override", visibility)
+                self.assertIn("`gpt-5.6-luna` → `GPT-5.6 Luna`", visibility)
+                self.assertIn("`gpt-5.6-sol` → `GPT-5.6 Sol`", visibility)
+                for role in ("Explorer", "Worker", "Tester", "Researcher", "Reviewer"):
+                    self.assertIn(role, visibility)
+                self.assertIn("built-in `Started …` interface message", visibility)
+
+    def test_readme_shows_required_pro_visibility_examples(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        parallel_example = """Orchestrator — GPT-5.6 Sol · medium reasoning
+Started `/root/map_backend` — Explorer · GPT-5.6 Luna · max reasoning
+Started `/root/check_api` — Researcher · GPT-5.6 Luna · max reasoning"""
+        self.assertIn(parallel_example, readme)
+        self.assertIn(
+            "Started `/root/review_change` — Reviewer · GPT-5.6 Sol · low reasoning",
+            readme,
+        )
+        self.assertIn("A failed spawn produces no `Started` detail", readme)
+        self.assertIn("cannot replace or enrich the built-in\n`Started …` interface", readme)
+        self.assertIn("labelled as a profile default", readme)
+        self.assertIn("requested spawn was accepted, not backend model\nexecution", readme)
+        self.assertIn("does not alter\neither profile's agent selection or delegation behavior", readme)
+
 
 class ShellInstallerTests(unittest.TestCase):
     def test_installs_each_profile_with_sol_skill(self):
