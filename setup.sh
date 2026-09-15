@@ -3,17 +3,19 @@
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+legacy_agent_instruction='For complex coding tasks, use the `astra-orchestrator` skill when its trigger conditions match.'
+sol_agent_instruction='For complex coding tasks, use the `sol-orchestrator` skill when its trigger conditions match.'
 
 cat <<'BANNER'
 +---------------------------------------+
-|    _    ____ _____ ____      _        |
-|   / \  / ___|_   _|  _ \    / \       |
-|  / _ \ \___ \ | | | |_) |  / _ \      |
-| / ___ \ ___) || | |  _ <  / ___ \     |
-|/_/   \_\____/ |_| |_| \_\/_/   \_\    |
+|      ____   ___  _                    |
+|     / ___| / _ \| |                   |
+|     \___ \| | | | |                   |
+|      ___) | |_| | |___                |
+|     |____/ \___/|_____|               |
 |                                       |
 |       O R C H E S T R A T O R         |
-|   Plan and orchestrate with Astra.    |
+|    Plan and review with Sol.          |
 |          Execute with Luna.           |
 +---------------------------------------+
 BANNER
@@ -119,8 +121,8 @@ merge_conflicts() {
 
 select_plan() {
     printf '%s\n' 'Codex plan:'
-    printf '%s\n' '  1) Pro  - GPT-6 Astra orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews'
-    printf '%s\n' '  2) Plus - GPT-5.6 Luna (max reasoning) orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews'
+    printf '%s\n' '  1) Pro  - GPT-5.6 Sol orchestrates and reviews; GPT-5.6 Luna executes'
+    printf '%s\n' '  2) Plus - GPT-5.6 Luna orchestrates and executes; GPT-5.6 Sol reviews'
 
     while :; do
         printf '%s' 'Select plan [1/2] (default 1): '
@@ -154,11 +156,33 @@ copy_component() {
                 printf 'Skipped %s: target must be a regular file, not a symbolic link.\n' "$name" >&2
                 return 0
             fi
+            agents_updated=no
+            if grep -Fq "$legacy_agent_instruction" "$destination_path"; then
+                temp_file=$(mktemp "${TMPDIR:-/tmp}/sol-orchestrator-agents.XXXXXX")
+                trap 'rm -f "$temp_file"' EXIT HUP INT TERM
+                awk -v old="$legacy_agent_instruction" -v new="$sol_agent_instruction" '
+                    {
+                        start = index($0, old)
+                        if (start) {
+                            $0 = substr($0, 1, start - 1) new substr($0, start + length(old))
+                        }
+                        print
+                    }
+                ' "$destination_path" > "$temp_file"
+                cat "$temp_file" > "$destination_path"
+                rm -f "$temp_file"
+                trap - EXIT HUP INT TERM
+                printf '%s\n' 'Updated AGENTS.md: replaced the legacy astra-orchestrator directive.'
+                agents_updated=yes
+            fi
             instructions=$(cat "$source_path")
             existing_instructions=$(cat "$destination_path")
             case "$existing_instructions" in
                 *"$instructions"*)
-                    printf 'Skipped %s: instructions already present.\n' "$name"
+                    if [ "$agents_updated" = no ]; then
+                        printf 'Skipped %s: instructions already present.\n' "$name"
+                    fi
+                    component_installed=$agents_updated
                     return 0
                     ;;
             esac
@@ -233,6 +257,23 @@ for component in .codex .agents AGENTS.md; do
         printf 'Skipped %s.\n' "$component"
     fi
 done
+
+legacy_skill=$target_dir/.agents/skills/astra-orchestrator
+sol_skill=$target_dir/.agents/skills/sol-orchestrator
+if [ -e "$legacy_skill" ] || [ -L "$legacy_skill" ]; then
+    if [ -e "$sol_skill" ] || [ -L "$sol_skill" ]; then
+        printf '%s\n' 'WARNING: the legacy .agents/skills/astra-orchestrator directory is still present.' >&2
+        printf '%s\n' 'Review it for local changes, then remove it to avoid loading both skills.' >&2
+    else
+        printf '%s\n' 'WARNING: the legacy Astra skill remains because the Sol skill is not installed.' >&2
+        printf '%s\n' 'Keep it, or rerun setup and install .agents before removing it.' >&2
+    fi
+fi
+
+if [ -f "$target_dir/AGENTS.md" ] && grep -Fq "$legacy_agent_instruction" "$target_dir/AGENTS.md"; then
+    printf '%s\n' 'WARNING: AGENTS.md still references astra-orchestrator.' >&2
+    printf '%s\n' 'Replace that directive with sol-orchestrator, or rerun setup and install AGENTS.md.' >&2
+fi
 
 printf '\nSetup complete. %s component(s) installed in %s (plan: %s).\n' "$installed" "$target_dir" "$plan"
 printf '%s\n' 'See guides/ for optional Codex model and Fast-mode configurations.'

@@ -5,16 +5,18 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$legacyAgentInstruction = 'For complex coding tasks, use the `astra-orchestrator` skill when its trigger conditions match.'
+$solAgentInstruction = 'For complex coding tasks, use the `sol-orchestrator` skill when its trigger conditions match.'
 $banner = @'
 +---------------------------------------+
-|    _    ____ _____ ____      _        |
-|   / \  / ___|_   _|  _ \    / \       |
-|  / _ \ \___ \ | | | |_) |  / _ \      |
-| / ___ \ ___) || | |  _ <  / ___ \     |
-|/_/   \_\____/ |_| |_| \_\/_/   \_\    |
+|      ____   ___  _                    |
+|     / ___| / _ \| |                   |
+|     \___ \| | | | |                   |
+|      ___) | |_| | |___                |
+|     |____/ \___/|_____|               |
 |                                       |
 |       O R C H E S T R A T O R         |
-|   Plan and orchestrate with Astra.    |
+|    Plan and review with Sol.          |
 |          Execute with Luna.           |
 +---------------------------------------+
 '@
@@ -52,8 +54,8 @@ function Read-Confirmation {
 
 function Read-Plan {
     [Console]::WriteLine('Codex plan:')
-    [Console]::WriteLine('  1) Pro  - GPT-6 Astra orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews')
-    [Console]::WriteLine('  2) Plus - GPT-5.6 Luna (max reasoning) orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews')
+    [Console]::WriteLine('  1) Pro  - GPT-5.6 Sol orchestrates and reviews; GPT-5.6 Luna executes')
+    [Console]::WriteLine('  2) Plus - GPT-5.6 Luna orchestrates and executes; GPT-5.6 Sol reviews')
 
     while ($true) {
         [Console]::Write('Select plan [1/2] (default 1): ')
@@ -251,19 +253,27 @@ function Install-Component {
 
         if ($Name -eq 'AGENTS.md') {
             $instructions = [IO.File]::ReadAllText($sourcePath)
-            $existing = [IO.File]::ReadAllText($destinationPath)
-            $normalizedInstructions = $instructions.Replace("`r`n", "`n").TrimEnd("`n")
-            if ($existing.Replace("`r`n", "`n").Contains($normalizedInstructions)) {
-                [Console]::WriteLine("Skipped ${Name}: instructions already present.")
-                return $false
-            }
             $reader = [IO.StreamReader]::new($destinationPath, [Text.Encoding]::UTF8, $true)
             try {
-                $null = $reader.ReadToEnd()
+                $existing = $reader.ReadToEnd()
                 $encoding = $reader.CurrentEncoding
             }
             finally {
                 $reader.Dispose()
+            }
+            $agentsUpdated = $false
+            if ($existing.Contains($legacyAgentInstruction)) {
+                $existing = $existing.Replace($legacyAgentInstruction, $solAgentInstruction)
+                [IO.File]::WriteAllText($destinationPath, $existing, $encoding)
+                [Console]::WriteLine('Updated AGENTS.md: replaced the legacy astra-orchestrator directive.')
+                $agentsUpdated = $true
+            }
+            $normalizedInstructions = $instructions.Replace("`r`n", "`n").TrimEnd("`n")
+            if ($existing.Replace("`r`n", "`n").Contains($normalizedInstructions)) {
+                if (-not $agentsUpdated) {
+                    [Console]::WriteLine("Skipped ${Name}: instructions already present.")
+                }
+                return $agentsUpdated
             }
             [IO.File]::AppendAllText($destinationPath, "`n`n" + $instructions, $encoding)
             [Console]::WriteLine("Appended instructions to ${Name}. Existing contents preserved.")
@@ -338,6 +348,29 @@ try {
         }
         else {
             [Console]::WriteLine("Skipped $component.")
+        }
+    }
+
+    $legacySkill = Join-Path $targetDirectory '.agents/skills/astra-orchestrator'
+    $solSkill = Join-Path $targetDirectory '.agents/skills/sol-orchestrator'
+    if ($null -ne (Get-Item -LiteralPath $legacySkill -Force -ErrorAction SilentlyContinue)) {
+        if ($null -ne (Get-Item -LiteralPath $solSkill -Force -ErrorAction SilentlyContinue)) {
+            [Console]::Error.WriteLine('WARNING: the legacy .agents/skills/astra-orchestrator directory is still present.')
+            [Console]::Error.WriteLine('Review it for local changes, then remove it to avoid loading both skills.')
+        }
+        else {
+            [Console]::Error.WriteLine('WARNING: the legacy Astra skill remains because the Sol skill is not installed.')
+            [Console]::Error.WriteLine('Keep it, or rerun setup and install .agents before removing it.')
+        }
+    }
+
+    $targetAgentsFile = Join-Path $targetDirectory 'AGENTS.md'
+    $targetAgentsItem = Get-Item -LiteralPath $targetAgentsFile -Force -ErrorAction SilentlyContinue
+    if (($null -ne $targetAgentsItem) -and (-not $targetAgentsItem.PSIsContainer)) {
+        $targetAgentsText = [IO.File]::ReadAllText($targetAgentsFile)
+        if ($targetAgentsText.Contains($legacyAgentInstruction)) {
+            [Console]::Error.WriteLine('WARNING: AGENTS.md still references astra-orchestrator.')
+            [Console]::Error.WriteLine('Replace that directive with sol-orchestrator, or rerun setup and install AGENTS.md.')
         }
     }
 
