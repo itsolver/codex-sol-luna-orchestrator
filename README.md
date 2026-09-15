@@ -226,6 +226,38 @@ Use workers for bounded implementation, tester for verification,
 and reviewer for an independent final review.
 ```
 
+### Orchestration status
+
+The skill adds concise assistant commentary so the selected role, model, and
+reasoning effort remain visible alongside Codex's built-in agent status. For
+example, parallel agents under the Pro profile report:
+
+```text
+Orchestrator — GPT-5.6 Sol · medium reasoning
+Started `/root/map_backend` — Explorer · GPT-5.6 Luna · max reasoning
+Started `/root/check_api` — Researcher · GPT-5.6 Luna · max reasoning
+```
+
+A review agent reports:
+
+```text
+Started `/root/review_change` — Reviewer · GPT-5.6 Sol · low reasoning
+```
+
+The configured root model and effort appear once when orchestration starts.
+They come from active session configuration when available, otherwise from the
+installed profile; this describes configuration rather than proving which model
+the backend ultimately executed. Each `Started` line is added only after a
+successful `spawn_agent` call and reflects the role, model, and effort passed to
+that call, including permitted user overrides. A failed spawn produces no
+`Started` detail. The skill adds these commentary lines separately; it cannot
+replace or enrich the built-in `Started …` interface message.
+
+The examples and requested Sol/medium root plus Luna/max execution policy above
+use the Pro profile. The Plus profile reports its existing Luna `max` root and
+Luna `medium` execution policy instead; this visibility change does not alter
+either profile's agent selection or delegation behavior.
+
 ## Suggested topology
 
 ```text
