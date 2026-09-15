@@ -7,14 +7,14 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $PSCommandPath
 $banner = @'
 +---------------------------------------+
-|    _    ____ _____ ____      _        |
-|   / \  / ___|_   _|  _ \    / \       |
-|  / _ \ \___ \ | | | |_) |  / _ \      |
-| / ___ \ ___) || | |  _ <  / ___ \     |
-|/_/   \_\____/ |_| |_| \_\/_/   \_\    |
+|      ____   ___  _                    |
+|     / ___| / _ \| |                   |
+|     \___ \| | | | |                   |
+|      ___) | |_| | |___                |
+|     |____/ \___/|_____|               |
 |                                       |
 |       O R C H E S T R A T O R         |
-|   Plan and orchestrate with Astra.    |
+|    Plan and review with Sol.          |
 |          Execute with Luna.           |
 +---------------------------------------+
 '@
@@ -52,8 +52,8 @@ function Read-Confirmation {
 
 function Read-Plan {
     [Console]::WriteLine('Codex plan:')
-    [Console]::WriteLine('  1) Pro  - GPT-6 Astra orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews')
-    [Console]::WriteLine('  2) Plus - GPT-5.6 Luna (max reasoning) orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews')
+    [Console]::WriteLine('  1) Pro  - GPT-5.6 Sol orchestrates and reviews; GPT-5.6 Luna executes')
+    [Console]::WriteLine('  2) Plus - GPT-5.6 Luna orchestrates and executes; GPT-5.6 Sol reviews')
 
     while ($true) {
         [Console]::Write('Select plan [1/2] (default 1): ')
@@ -339,6 +339,12 @@ try {
         else {
             [Console]::WriteLine("Skipped $component.")
         }
+    }
+
+    $legacySkill = Join-Path $targetDirectory '.agents/skills/astra-orchestrator'
+    if ($null -ne (Get-Item -LiteralPath $legacySkill -Force -ErrorAction SilentlyContinue)) {
+        [Console]::Error.WriteLine('WARNING: the legacy .agents/skills/astra-orchestrator directory is still present.')
+        [Console]::Error.WriteLine('Review it for local changes, then remove it to avoid loading both skills.')
     }
 
     [Console]::WriteLine()

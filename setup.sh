@@ -6,14 +6,14 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 
 cat <<'BANNER'
 +---------------------------------------+
-|    _    ____ _____ ____      _        |
-|   / \  / ___|_   _|  _ \    / \       |
-|  / _ \ \___ \ | | | |_) |  / _ \      |
-| / ___ \ ___) || | |  _ <  / ___ \     |
-|/_/   \_\____/ |_| |_| \_\/_/   \_\    |
+|      ____   ___  _                    |
+|     / ___| / _ \| |                   |
+|     \___ \| | | | |                   |
+|      ___) | |_| | |___                |
+|     |____/ \___/|_____|               |
 |                                       |
 |       O R C H E S T R A T O R         |
-|   Plan and orchestrate with Astra.    |
+|    Plan and review with Sol.          |
 |          Execute with Luna.           |
 +---------------------------------------+
 BANNER
@@ -119,8 +119,8 @@ merge_conflicts() {
 
 select_plan() {
     printf '%s\n' 'Codex plan:'
-    printf '%s\n' '  1) Pro  - GPT-6 Astra orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews'
-    printf '%s\n' '  2) Plus - GPT-5.6 Luna (max reasoning) orchestrates, GPT-5.6 Luna executes, GPT-6 Astra reviews'
+    printf '%s\n' '  1) Pro  - GPT-5.6 Sol orchestrates and reviews; GPT-5.6 Luna executes'
+    printf '%s\n' '  2) Plus - GPT-5.6 Luna orchestrates and executes; GPT-5.6 Sol reviews'
 
     while :; do
         printf '%s' 'Select plan [1/2] (default 1): '
@@ -233,6 +233,12 @@ for component in .codex .agents AGENTS.md; do
         printf 'Skipped %s.\n' "$component"
     fi
 done
+
+legacy_skill=$target_dir/.agents/skills/astra-orchestrator
+if [ -e "$legacy_skill" ] || [ -L "$legacy_skill" ]; then
+    printf '%s\n' 'WARNING: the legacy .agents/skills/astra-orchestrator directory is still present.' >&2
+    printf '%s\n' 'Review it for local changes, then remove it to avoid loading both skills.' >&2
+fi
 
 printf '\nSetup complete. %s component(s) installed in %s (plan: %s).\n' "$installed" "$target_dir" "$plan"
 printf '%s\n' 'See guides/ for optional Codex model and Fast-mode configurations.'
