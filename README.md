@@ -84,9 +84,11 @@ When updating an existing installation, copy the role files along with `config.t
 
 If you previously installed the Astra version, remove the old
 `.agents/skills/astra-orchestrator/` directory after checking it for local
-changes, and replace any `$astra-orchestrator` or `astra-orchestrator`
-references in your existing `AGENTS.md`. The Sol skill has a new directory
-name, so copying `.agents` does not overwrite the legacy skill automatically.
+changes and confirming `.agents/skills/sol-orchestrator/SKILL.md` is present.
+The installers replace the exact legacy `astra-orchestrator` directive in an
+existing `AGENTS.md`; they warn instead if you skip that component. The Sol
+skill has a new directory name, so copying `.agents` does not delete the legacy
+skill automatically.
 
 If you want all named roles, including the reviewer, to follow the `[agents]` defaults, remove both the `model` and `model_reasoning_effort` overrides from their role files.
 

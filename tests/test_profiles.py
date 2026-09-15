@@ -107,8 +107,53 @@ class ShellInstallerTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("legacy .agents/skills/astra-orchestrator", result.stderr)
+            self.assertIn("Sol skill is not installed", result.stderr)
+            self.assertIn("Keep it", result.stderr)
+            self.assertNotIn("then remove it", result.stderr)
             self.assertTrue(legacy_skill.is_dir())
+
+    def test_upgrades_legacy_agents_directive_without_duplicating_instructions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            legacy_skill = target / ".agents" / "skills" / "astra-orchestrator"
+            legacy_skill.mkdir(parents=True)
+            (legacy_skill / "SKILL.md").write_text("legacy\n", encoding="utf-8")
+            current_agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+            legacy_agents = current_agents.replace("sol-orchestrator", "astra-orchestrator")
+            (target / "AGENTS.md").write_text(legacy_agents, encoding="utf-8")
+
+            result = subprocess.run(
+                ["sh", str(ROOT / "setup.sh")],
+                input=f"{directory}\n1\nn\n\ny\n\n",
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            installed_agents = (target / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertEqual(installed_agents, current_agents)
+            self.assertNotIn("astra-orchestrator", installed_agents)
+            self.assertIn("replaced the legacy astra-orchestrator directive", result.stdout)
+            self.assertTrue((target / ".agents" / "skills" / "sol-orchestrator").is_dir())
+            self.assertIn("then remove it to avoid loading both skills", result.stderr)
+
+    def test_warns_when_legacy_agents_directive_update_is_skipped(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            legacy_agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8").replace(
+                "sol-orchestrator", "astra-orchestrator"
+            )
+            (target / "AGENTS.md").write_text(legacy_agents, encoding="utf-8")
+            result = subprocess.run(
+                ["sh", str(ROOT / "setup.sh")],
+                input=f"{directory}\n1\nn\nn\nn\n",
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("AGENTS.md still references astra-orchestrator", result.stderr)
+            self.assertIn("rerun setup and install AGENTS.md", result.stderr)
 
 
 if __name__ == "__main__":

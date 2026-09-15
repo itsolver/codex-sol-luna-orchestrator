@@ -5,6 +5,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $scriptDir = Split-Path -Parent $PSCommandPath
+$legacyAgentInstruction = 'For complex coding tasks, use the `astra-orchestrator` skill when its trigger conditions match.'
+$solAgentInstruction = 'For complex coding tasks, use the `sol-orchestrator` skill when its trigger conditions match.'
 $banner = @'
 +---------------------------------------+
 |      ____   ___  _                    |
@@ -251,19 +253,27 @@ function Install-Component {
 
         if ($Name -eq 'AGENTS.md') {
             $instructions = [IO.File]::ReadAllText($sourcePath)
-            $existing = [IO.File]::ReadAllText($destinationPath)
-            $normalizedInstructions = $instructions.Replace("`r`n", "`n").TrimEnd("`n")
-            if ($existing.Replace("`r`n", "`n").Contains($normalizedInstructions)) {
-                [Console]::WriteLine("Skipped ${Name}: instructions already present.")
-                return $false
-            }
             $reader = [IO.StreamReader]::new($destinationPath, [Text.Encoding]::UTF8, $true)
             try {
-                $null = $reader.ReadToEnd()
+                $existing = $reader.ReadToEnd()
                 $encoding = $reader.CurrentEncoding
             }
             finally {
                 $reader.Dispose()
+            }
+            $agentsUpdated = $false
+            if ($existing.Contains($legacyAgentInstruction)) {
+                $existing = $existing.Replace($legacyAgentInstruction, $solAgentInstruction)
+                [IO.File]::WriteAllText($destinationPath, $existing, $encoding)
+                [Console]::WriteLine('Updated AGENTS.md: replaced the legacy astra-orchestrator directive.')
+                $agentsUpdated = $true
+            }
+            $normalizedInstructions = $instructions.Replace("`r`n", "`n").TrimEnd("`n")
+            if ($existing.Replace("`r`n", "`n").Contains($normalizedInstructions)) {
+                if (-not $agentsUpdated) {
+                    [Console]::WriteLine("Skipped ${Name}: instructions already present.")
+                }
+                return $agentsUpdated
             }
             [IO.File]::AppendAllText($destinationPath, "`n`n" + $instructions, $encoding)
             [Console]::WriteLine("Appended instructions to ${Name}. Existing contents preserved.")
@@ -342,9 +352,26 @@ try {
     }
 
     $legacySkill = Join-Path $targetDirectory '.agents/skills/astra-orchestrator'
+    $solSkill = Join-Path $targetDirectory '.agents/skills/sol-orchestrator'
     if ($null -ne (Get-Item -LiteralPath $legacySkill -Force -ErrorAction SilentlyContinue)) {
-        [Console]::Error.WriteLine('WARNING: the legacy .agents/skills/astra-orchestrator directory is still present.')
-        [Console]::Error.WriteLine('Review it for local changes, then remove it to avoid loading both skills.')
+        if ($null -ne (Get-Item -LiteralPath $solSkill -Force -ErrorAction SilentlyContinue)) {
+            [Console]::Error.WriteLine('WARNING: the legacy .agents/skills/astra-orchestrator directory is still present.')
+            [Console]::Error.WriteLine('Review it for local changes, then remove it to avoid loading both skills.')
+        }
+        else {
+            [Console]::Error.WriteLine('WARNING: the legacy Astra skill remains because the Sol skill is not installed.')
+            [Console]::Error.WriteLine('Keep it, or rerun setup and install .agents before removing it.')
+        }
+    }
+
+    $targetAgentsFile = Join-Path $targetDirectory 'AGENTS.md'
+    $targetAgentsItem = Get-Item -LiteralPath $targetAgentsFile -Force -ErrorAction SilentlyContinue
+    if (($null -ne $targetAgentsItem) -and (-not $targetAgentsItem.PSIsContainer)) {
+        $targetAgentsText = [IO.File]::ReadAllText($targetAgentsFile)
+        if ($targetAgentsText.Contains($legacyAgentInstruction)) {
+            [Console]::Error.WriteLine('WARNING: AGENTS.md still references astra-orchestrator.')
+            [Console]::Error.WriteLine('Replace that directive with sol-orchestrator, or rerun setup and install AGENTS.md.')
+        }
     }
 
     [Console]::WriteLine()
